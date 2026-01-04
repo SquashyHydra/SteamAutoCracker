@@ -22,8 +22,9 @@ An open-source script that automatically Cracks (removes DRM from) Steam games
 - No Steam account or Steam API key needed
 - Configurable to your liking
 - Option to only unlock DLCs for your bought Steam games instead of cracking them entirely
-- Option to choose your own Steam Emu thanks to a simple list, and simple config template system (default: ALI213)
+- Option to choose your own Steam Emu thanks to a simple list, and simple config template system (default: RUNE)
   - List of Steam emus included by default:
+    - RUNE (Game)
     - ALI213 (Game)
     - Goldberg (Game)
     - CreamAPI (DLC)
