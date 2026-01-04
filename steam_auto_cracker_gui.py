@@ -158,9 +158,9 @@ try: # Handles Python errors to write them to a log file so they can be reported
             selectFolderButton.config(state=tk.NORMAL) # Re-enable the ability to change the selected folder
             return
         
-        try:
+        if gameNameEntry.get().isdigit():
             appID = int(gameNameEntry.get())
-        except Exception:
+        else:
             appID = FindInAppList(gameNameEntry.get())
 
         if not str(appID).isdigit():
@@ -184,7 +184,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
     def FindInAppList(appName):
         update_logs("\nImporting and searching the App List, this could take a few seconds if your computer isn't powerful enough.")
         gameFoundStatus.config(text=f"Searching in the App List...")
-        root.update()
+        root.update() # Update the window now
         try:
             with open("applist.txt", "r", encoding="utf-8") as file:
                 data = json.load(file)
