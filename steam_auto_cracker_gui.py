@@ -15,7 +15,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
     from time import sleep
     from sys import exit
 
-    VERSION = "2.2.2"
+    VERSION = "2.2.3"
 
     RETRY_DELAY = 15 # Delay in seconds before retrying a failed request. (default, can be modified in config.ini)
     RETRY_MAX = 30 # Number of failed tries (includes the first try) after which SAC will stop trying and quit. (default, can be modified in config.ini)
@@ -145,21 +145,24 @@ try: # Handles Python errors to write them to a log file so they can be reported
         gameFoundStatus.config(text=f"")
         # Disable the ability to change the selected folder
         selectFolderButton.config(state=tk.DISABLED)
-        updateAppListButton.grid_forget()
+        #updateAppListButton.grid_forget()
         root.update()
 
         global appID
         appID = 0
-        if gameNameEntry.get() == "":
-            update_logs("\n[!] Please enter a valid Name or AppID")
+        if gameNameEntry.get() == "" or gameNameEntry.get().isdigit() == False:
+            update_logs("\n[!] Please enter a AppID")
             searchGameButton.config(state=tk.NORMAL)  # Re-enable the ability to search the game
             selectFolderButton.config(state=tk.NORMAL) # Re-enable the ability to change the selected folder
             return
-
+        
         try:
             appID = int(gameNameEntry.get())
-        except:
-            appID = FindInAppList(gameNameEntry.get())
+        except Exception:
+            update_logs("\n[!] Please enter a valid AppID")
+            searchGameButton.config(state=tk.NORMAL)  # Re-enable the ability to search the game
+            selectFolderButton.config(state=tk.NORMAL) # Re-enable the ability to change the selected folder
+            return
 
         if appID != 0 and RetrieveGame(): # On success
             # We are now on step 3
@@ -171,6 +174,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
             searchGameButton.config(state=tk.NORMAL) # Re-enable the ability to search the game
             selectFolderButton.config(state=tk.NORMAL) # Re-enable the ability to change the selected folder
 
+    """
     def FindInAppList(appName):
         update_logs("\nImporting and searching the App List, this could take a few seconds if your computer isn't powerful enough.")
         gameFoundStatus.config(text=f"Searching in the App List...")
@@ -202,7 +206,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
         gameFoundStatus.config(text=f"Updating the App List...")
         root.update()
         try:
-            req = SACRequest("https://api.steampowered.com/ISteamApps/GetAppList/v2/", "UpdateAppList").req
+            req = SACRequest("https://partner.steam-api.com/IStoreService/GetAppList/v1/", "UpdateAppList").req
         except Exception:
             gameFoundStatus.config(text=f"An error has occurred")
             return
@@ -211,8 +215,9 @@ try: # Handles Python errors to write them to a log file so they can be reported
             file.write(req.text)
         update_logs("App List updated!")
         gameFoundStatus.config(text=f"App List updated!")
+    """
 
-    def RetrieveAppName(appID: int) -> str:
+    def RetrieveAppName(appID: int) -> str: 
         try:
             req = SACRequest("https://store.steampowered.com/api/appdetails?appids=" + str(appID) + "&filters=basic", "RetrieveAppName").req
         except Exception:
@@ -429,10 +434,20 @@ try: # Handles Python errors to write them to a log file so they can be reported
                     update_logs("[!] Seems like a file named " + config["FileNames"]["SteamAPI"] + " is present. This could indicate that steam_api.dll has already been cracked! Overwriting steam_api.dll. No backup of the previous steam_api.dll could be created, and the file has been deleted. " + config["FileNames"]["SteamAPI"] + " has been restored.")
                     os.remove(root_dir + "/steam_api.dll")
                     shutil.move(root_dir + "/" + config["FileNames"]["SteamAPI"], root_dir + "/steam_api.dll")
+                    if 'game_rune' in config["Crack"]["SelectedCrack"]:
+                        if os.path.exists(root_dir + "/rune.dll"):
+                            os.remove(root_dir + "/steam_api.rde")
+                            os.remove(root_dir + "/rune.dll")
+                            os.remove(root_dir + "/steam_emu.ini")
+                            os.remove(root_dir + "/GameOverlayRenderer.dll")
+                            os.remove(root_dir + "/steamclient.dll")
 
                 apiFile = root_dir + "/steam_api.dll"
+                runeFile = root_dir + "/steam_api.rde"
                 try:
                     apiFileVersion = GetFileVersion(apiFile)
+                    if os.path.exists(runeFile):
+                        raise Exception("Game already cracked with RUNE")
                 except Exception:
                     update_logs("[!] steam_api.dll: could not retrieve the file version! Seems like the steam_api.dll file has already been cracked! Aborting...")
                     EndCrack()
@@ -445,10 +460,20 @@ try: # Handles Python errors to write them to a log file so they can be reported
                     update_logs("[!] Seems like a file named " + config["FileNames"]["SteamAPI64"] + " is present. This could indicate that steam_api64.dll has already been cracked! Overwriting steam_api64.dll. No backup of the previous steam_api64.dll could be created, and the file has been deleted. " + config["FileNames"]["SteamAPI64"] + " has been restored.")
                     os.remove(root_dir + "/steam_api64.dll")
                     shutil.move(root_dir + "/" + config["FileNames"]["SteamAPI64"], root_dir + "/steam_api64.dll")
+                    if 'game_rune' in config["Crack"]["SelectedCrack"]:
+                        if os.path.exists(root_dir + "/rune64.dll"):
+                            os.remove(root_dir + "/steam_api64.rde")
+                            os.remove(root_dir + "/rune64.dll")
+                            os.remove(root_dir + "/steam_emu.ini")
+                            os.remove(root_dir + "/GameOverlayRenderer64.dll")
+                            os.remove(root_dir + "/steamclient64.dll")
 
                 apiFile = root_dir + "/steam_api64.dll"
+                runeFile = root_dir + "/steam_api64.rde"
                 try:
                     apiFileVersion = GetFileVersion(apiFile)
+                    if os.path.exists(runeFile):
+                        raise Exception("Game already cracked with RUNE")
                 except Exception:
                     update_logs("[!] steam_api64.dll: could not retrieve the file version! Seems like the steam_api64.dll file has already been cracked! Aborting...")
                     EndCrack()
@@ -483,30 +508,115 @@ try: # Handles Python errors to write them to a log file so they can be reported
                 for fileName in files:
                     root.update()
                     if os.path.isfile(os.path.join(dllAbsoluteRelativeLocation, fileName)): # The file already exists in the game, rename it to .bak
-                        newName = fileName + config["FileNames"]["BakSuffix"]
-                        if fileName == "steam_api.dll" or fileName == "steam_api64.dll":
-                            if config["Preferences"]["CrackOption"] != "0": # Only create config
-                                update_logs("Ignoring " + relativeRootDir + fileName + " because of the set crack approach")
-                                continue
+                        if not "game_rune" in config["Crack"]["SelectedCrack"]:
+                            newName = fileName + config["FileNames"]["BakSuffix"]
+                            if fileName == "steam_api.dll" or fileName == "steam_api64.dll":
+                                if config["Preferences"]["CrackOption"] != "0": # Only create config
+                                    update_logs("Ignoring " + relativeRootDir + fileName + " because of the set crack approach")
+                                    continue
 
-                            if fileName == "steam_api.dll":
-                                newName = config["FileNames"]["SteamAPI"]
+                                if fileName == "steam_api.dll":
+                                    newName = config["FileNames"]["SteamAPI"]
+                                else:
+                                    newName = config["FileNames"]["SteamAPI64"]
+
+                            if newName == "": # Don't keep a backup of the steam_api(64).dll file
+                                os.remove(os.path.join(dllAbsoluteRelativeLocation, fileName))
+                                update_logs("Removed old " + relativeRootDir + fileName + " file because no backup file name is set")
+                            elif os.path.isfile(os.path.join(dllAbsoluteRelativeLocation, newName)): # A backup of this file already exists, the game might already be cracked, abort!
+                                update_logs("[!] Seems like the backup of " + relativeRootDir + fileName + " file already exists! This could indicate that the game has already been cracked. Overwriting it. No backup of " + relativeRootDir + fileName + " could be created, and the file has been deleted.")
+                                os.remove(os.path.join(dllAbsoluteRelativeLocation, fileName))
                             else:
-                                newName = config["FileNames"]["SteamAPI64"]
+                                shutil.move(os.path.join(dllAbsoluteRelativeLocation, fileName), os.path.join(dllAbsoluteRelativeLocation, newName))
+                                update_logs("Backupped old file " + relativeRootDir + fileName + " -> " + newName)
+                        elif fileName == "steam_api.dll" or fileName == "steam_api64.dll": # No existing file, and this file is the steam_api(64).dll one
+                            continue # Ignore this file
+                    
+                    if 'game_rune' in config["Crack"]["SelectedCrack"]:
+                        bit_type = ""
+                        for file in os.listdir(dllCurrentLocation):
+                            if "steam_api" in file and file.endswith(".dll"):
+                                if "64" in file:
+                                    bit_type = "64"
+                                else:
+                                    bit_type = "86"
+                        steam_dll = "steam_api64.dll" if bit_type == "64" else "steam_api.dll"
+                        # Create redirect for Steam dll
+                        if not os.path.exists(os.path.join(dllCurrentLocation, f"{steam_dll.split('.')[0]}.rde")):
+                            shutil.copyfile(os.path.join(dllCurrentLocation, steam_dll), os.path.join(dllCurrentLocation, f"{steam_dll}.bak"))
+                            shutil.copyfile(os.path.join(dllCurrentLocation, steam_dll), os.path.join(dllCurrentLocation, f"{steam_dll.split('.')[0]}.rde"))
+                        # Copy RUNE DLL's
+                        shutil.copyfile(os.path.join(root_dir, "steam_emu.ini"), os.path.join(dllCurrentLocation, "steam_emu.ini"))
+                        if bit_type == "64":
+                            shutil.copyfile(os.path.join(root_dir, "GameOverlayRenderer64.dll"), os.path.join(dllCurrentLocation, "GameOverlayRenderer64.dll"))
+                            shutil.copyfile(os.path.join(root_dir, "rune64.dll"), os.path.join(dllCurrentLocation, "rune64.dll"))
+                            shutil.copyfile(os.path.join(root_dir, "steamclient64.dll"), os.path.join(dllCurrentLocation, "steamclient64.dll"))
+                        elif bit_type == "86":
+                            shutil.copyfile(os.path.join(root_dir, "GameOverlayRenderer.dll"), os.path.join(dllCurrentLocation, "GameOverlayRenderer.dll"))
+                            shutil.copyfile(os.path.join(root_dir, "rune.dll"), os.path.join(dllCurrentLocation, "rune.dll"))
+                            shutil.copyfile(os.path.join(root_dir, "steamclient.dll"), os.path.join(dllCurrentLocation, "steamclient.dll"))
+                        
+                        # Edit steam_api dll
+                        with open(os.path.join(dllCurrentLocation, steam_dll), "r+b") as file:
+                            content = file.read()
+                            if "64" in steam_dll:
+                                content = content.replace(b'SHELL32.dll', f'RUNE64'.encode('utf-8'))
+                            else:
+                                content = content.replace(b'SHELL32.dll', f'RUNE'.encode('utf-8'))
+                            file.seek(0)
+                            file.write(content)
 
-                        if newName == "": # Don't keep a backup of the steam_api(64).dll file
-                            os.remove(os.path.join(dllAbsoluteRelativeLocation, fileName))
-                            update_logs("Removed old " + relativeRootDir + fileName + " file because no backup file name is set")
-                        elif os.path.isfile(os.path.join(dllAbsoluteRelativeLocation, newName)): # A backup of this file already exists, the game might already be cracked, abort!
-                            update_logs("[!] Seems like the backup of " + relativeRootDir + fileName + " file already exists! This could indicate that the game has already been cracked. Overwriting it. No backup of " + relativeRootDir + fileName + " could be created, and the file has been deleted.")
-                            os.remove(os.path.join(dllAbsoluteRelativeLocation, fileName))
-                        else:
-                            shutil.move(os.path.join(dllAbsoluteRelativeLocation, fileName), os.path.join(dllAbsoluteRelativeLocation, newName))
-                            update_logs("Backupped old file " + relativeRootDir + fileName + " -> " + newName)
-                    elif fileName == "steam_api.dll" or fileName == "steam_api64.dll": # No existing file, and this file is the steam_api(64).dll one
-                        continue # Ignore this file
-
-                    shutil.copyfile(os.path.join(root_dir, fileName), os.path.join(dllAbsoluteRelativeLocation, fileName))
+                        # get interfaces from Steam 
+                        first_interface = "SteamUser0"
+                        last_interface = "SteamGameServerStats0"
+                        with open(os.path.join(dllCurrentLocation, steam_dll), "r+b") as file:
+                            content = file.read().decode('utf-8', errors='ignore')
+                            start_index = content.find(first_interface)
+                            end_index = content.find(last_interface) + len(last_interface)
+                            interfaces_str = content[start_index:end_index]
+                            interfaces_list = []
+                            for line in interfaces_str.split('\x00'):
+                                if line.startswith("Steam"):
+                                    interfaces_list.append(line)
+                        rune_interface_index ={
+                            "SteamApps": "STEAMAPPS_INTERFACE_VERSION008",
+                            "SteamClient": "SteamClient017",
+                            "SteamController": "SteamController008",
+                            "SteamFriends": "SteamFriends017",
+                            "SteamGameServer": "SteamGameServer015",
+                            "SteamGameServerStats": "SteamGameServerStats001",
+                            "SteamHTMLSurface": "STEAMHTMLSURFACE_INTERFACE_VERSION_005",
+                            "SteamHTTP": "STEAMHTTP_INTERFACE_VERSION003",
+                            "SteamInput": "SteamInput006",
+                            "SteamInventory": "STEAMINVENTORY_INTERFACE_V003",
+                            "SteamMatchGameSearch": "SteamMatchGameSearch001",
+                            "SteamMatchMaking": "SteamMatchMaking009",
+                            "SteamMatchMakingServers": "SteamMatchMakingServers002",
+                            "SteamMusic": "STEAMMUSIC_INTERFACE_VERSION001",
+                            "SteamMusicRemote": "STEAMMUSICREMOTE_INTERFACE_VERSION001",
+                            "SteamNetworking": "SteamNetworking006",
+                            "SteamParentalSettings": "STEAMPARENTALSETTINGS_INTERFACE_VERSION001",
+                            "SteamParties": "SteamParties002",
+                            "SteamRemotePlay": "STEAMREMOTEPLAY_INTERFACE_VERSION001",
+                            "SteamRemoteStorage": "STEAMREMOTESTORAGE_INTERFACE_VERSION016",
+                            "SteamScreenshots": "STEAMSCREENSHOTS_INTERFACE_VERSION003",
+                            "SteamUGC": "STEAMUGC_INTERFACE_VERSION017",
+                            "SteamUser": "SteamUser023",
+                            "SteamUserStats": "STEAMUSERSTATS_INTERFACE_VERSION012",
+                            "SteamUtils": "SteamUtils010",
+                            "SteamVideo": "STEAMVIDEO_INTERFACE_V002"
+                        }
+                        steamInterfaces = []
+                        for key, value in rune_interface_index.items():
+                            for interface in interfaces_list:
+                                if key in interface:
+                                    steamInterfaces.append(f"{key}={interface}")
+                                    break
+                                else:
+                                    steamInterfaces.append(f"{key}={value}")
+                                    break
+                    else:
+                        shutil.copyfile(os.path.join(root_dir, fileName), os.path.join(dllAbsoluteRelativeLocation, fileName))
 
                     # Check if ends with a specific extension, so we can replace the presets inside
                     if any(fileName.endswith(extension) for extension in EXTS_TO_REPLACE):
@@ -521,10 +631,15 @@ try: # Handles Python errors to write them to a log file so they can be reported
                         for i in range(len(dlcIDs)):
                             buffer += str(dlcIDs[i]) + " = " + dlcNames[i] + "\n"
                         fileContent = fileContent.replace("SAC_DLC", buffer)
+                        if 'game_rune' in config["Crack"]["SelectedCrack"]:
+                            buffer = ""
+                            for i in range(len(steamInterfaces)):
+                                buffer += str(steamInterfaces[i]) + "\n"
+                            fileContent = fileContent.replace("SAC_Interface", buffer.rstrip('\n\r'))
                         buffer = ""
                         for i in range(len(dlcIDs)):
                             buffer += str(dlcIDs[i]) + "=" + dlcNames[i] + "\n"
-                        fileContent = fileContent.replace("SAC_NoSpaceDLC", buffer)
+                        fileContent = fileContent.replace("SAC_NoSpaceDLC", buffer.rstrip('\n\r'))
 
                         # Write the changes
                         with open(os.path.join(dllAbsoluteRelativeLocation, fileName), "w", encoding="utf-8") as file:
@@ -730,12 +845,14 @@ try: # Handles Python errors to write them to a log file so they can be reported
     # ----- Crack List -----
 
     crackList = { # A list of all selectable cracks
+        "game_rune": ["R.U.N.E (Game)", "The R.U.N.E crack is simple and can crack a full game. It will unlock all DLCs and will also prevent the game from connecting to the internet.\nThe game folder can then freely be shared with others as the crack is contained inside the game folder."],
         "game_ali213": ["ALI213 (Game)", "The ALI213 crack is simple and can crack a full game. It will unlock all DLCs and will also prevent the game from connecting to the internet.\nThe game folder can then freely be shared with others as the crack is contained inside the game folder.\nIf it doesn't work, consider using Goldberg instead."],
         "game_goldberg": ["Goldberg (Game)", "The Goldberg (experimental) crack is similar to ALI213's one.\nIt is open-source, which is better, but might not work with older games, due to SAC's current partial support.\nThis crack will however work better for recent games, where ALI213 could fail.\nInternet connection is blocked, but LAN is enabled."],
         "dlc_creamapi": ["CreamAPI (DLC)", "The CreamAPI crack will unlock all DLCs but will not crack the main game. It is meant to be used with bought copies of a game, with your real Steam account.\nOnly use this is you have purchased the game on Steam and want to unlock its DLCs.\nWill not work for most online games, but might exceptionally work with some like Beat Saber."]
     }
 
     crackListSteamless = { # Whether to use Steamless with a specific crack. True = use Steamless
+        "game_rune": True,
         "game_ali213": True,
         "game_goldberg": True,
         "dlc_creamapi": False
@@ -830,7 +947,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
             currentConfig["Advanced"]["BypassGameVerification"] = "0"
         if resetLevel == 0 or resetLevel == 2:
             currentConfig["Crack"] = {}
-            currentConfig["Crack"]["SelectedCrack"] = "game_ali213"
+            currentConfig["Crack"]["SelectedCrack"] = "game_rune"
 
         if not customConfig:
             UpdateConfig()
@@ -1040,7 +1157,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
     gameNameEntry.grid(row=0, column=0, ipady=5)
     searchGameButton = ttk.Button(frame4, text="Search", padding=5, command=search_game)
     searchGameButton.grid(row=0, column=1, padx=(10, 0))
-    updateAppListButton = ttk.Button(frame4, text="Update the App List", padding=0, command=UpdateAppList)
+    #updateAppListButton = ttk.Button(frame4, text="Update the App List", padding=0, command=UpdateAppList)
 
     gameFoundStatus = ttk.Label(frameGame2, text="")
     gameFoundStatus.pack(pady=(5, 0), anchor="center")
