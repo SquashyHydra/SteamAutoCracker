@@ -53,7 +53,8 @@ try: # Handles Python errors to write them to a log file so they can be reported
             self.url = url
             self.tries = 0
             self.name = name
-            self.DoRequest()
+            if self.url != "https://partner.steam-api.com/IStoreService/GetAppList/v1/":
+                self.DoRequest()
 
         def DoRequest(self):
             self.tries += 1
@@ -145,13 +146,15 @@ try: # Handles Python errors to write them to a log file so they can be reported
         gameFoundStatus.config(text=f"")
         # Disable the ability to change the selected folder
         selectFolderButton.config(state=tk.DISABLED)
-        #updateAppListButton.grid_forget()
+        updateAppListButton.grid_forget()
         root.update()
 
         global appID
         appID = 0
-        if gameNameEntry.get() == "" or gameNameEntry.get().isdigit() == False:
-            update_logs("\n[!] Please enter a AppID")
+        if gameNameEntry.get() == "":
+            update_logs("\n[!] Please enter a valid Name or AppID")
+            gameNameEntry.delete(0, tk.END)
+            gameNameEntry.insert(0, "AppID")
             searchGameButton.config(state=tk.NORMAL)  # Re-enable the ability to search the game
             selectFolderButton.config(state=tk.NORMAL) # Re-enable the ability to change the selected folder
             return
@@ -159,7 +162,12 @@ try: # Handles Python errors to write them to a log file so they can be reported
         try:
             appID = int(gameNameEntry.get())
         except Exception:
-            update_logs("\n[!] Please enter a valid AppID")
+            appID = FindInAppList(gameNameEntry.get())
+
+        if not str(appID).isdigit():
+            update_logs("\n[!] Please enter a AppID")
+            gameNameEntry.delete(0, tk.END)
+            gameNameEntry.insert(0, "AppID")
             searchGameButton.config(state=tk.NORMAL)  # Re-enable the ability to search the game
             selectFolderButton.config(state=tk.NORMAL) # Re-enable the ability to change the selected folder
             return
@@ -174,8 +182,8 @@ try: # Handles Python errors to write them to a log file so they can be reported
             searchGameButton.config(state=tk.NORMAL) # Re-enable the ability to search the game
             selectFolderButton.config(state=tk.NORMAL) # Re-enable the ability to change the selected folder
 
-    """
     def FindInAppList(appName):
+        return #deprecated
         update_logs("\nImporting and searching the App List, this could take a few seconds if your computer isn't powerful enough.")
         gameFoundStatus.config(text=f"Searching in the App List...")
         root.update() # Update the window now
@@ -215,7 +223,6 @@ try: # Handles Python errors to write them to a log file so they can be reported
             file.write(req.text)
         update_logs("App List updated!")
         gameFoundStatus.config(text=f"App List updated!")
-    """
 
     def RetrieveAppName(appID: int) -> str: 
         try:
@@ -1157,7 +1164,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
     gameNameEntry.grid(row=0, column=0, ipady=5)
     searchGameButton = ttk.Button(frame4, text="Search", padding=5, command=search_game)
     searchGameButton.grid(row=0, column=1, padx=(10, 0))
-    #updateAppListButton = ttk.Button(frame4, text="Update the App List", padding=0, command=UpdateAppList)
+    updateAppListButton = ttk.Button(frame4, text="Update the App List", padding=0, command=UpdateAppList)
 
     gameFoundStatus = ttk.Label(frameGame2, text="")
     gameFoundStatus.pack(pady=(5, 0), anchor="center")
