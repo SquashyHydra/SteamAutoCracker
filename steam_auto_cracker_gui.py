@@ -53,8 +53,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
             self.url = url
             self.tries = 0
             self.name = name
-            if self.url != "https://partner.steam-api.com/IStoreService/GetAppList/v1/":
-                self.DoRequest()
+            self.DoRequest()
 
         def DoRequest(self):
             self.tries += 1
@@ -183,23 +182,20 @@ try: # Handles Python errors to write them to a log file so they can be reported
             selectFolderButton.config(state=tk.NORMAL) # Re-enable the ability to change the selected folder
 
     def FindInAppList(appName):
-        return #deprecated
         update_logs("\nImporting and searching the App List, this could take a few seconds if your computer isn't powerful enough.")
         gameFoundStatus.config(text=f"Searching in the App List...")
-        root.update() # Update the window now
+        root.update()
         try:
             with open("applist.txt", "r", encoding="utf-8") as file:
                 data = json.load(file)
         except:
             update_logs("The App List isn't downloaded on your computer, downloading it...")
             UpdateAppList()
-            return FindInAppList(appName) # Re launch this funtion
+            return FindInAppList(appName)
 
-        for elem in data["applist"]["apps"]:
-            if elem["name"].lower() != appName.lower():
-                continue
-
-            return elem["appid"]
+        for app in data:
+            if app["name"].lower() == appName.lower():
+                return app["appid"]
 
         update_logs("[!] The App was not found, make sure you entered EXACTLY the Steam Game's name (watch it on Steam)")
         update_logs("If you typed it properly, you can try to update the App List. Alternatively, you can try entering the AppID.")
@@ -214,7 +210,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
         gameFoundStatus.config(text=f"Updating the App List...")
         root.update()
         try:
-            req = SACRequest("https://partner.steam-api.com/IStoreService/GetAppList/v1/", "UpdateAppList").req
+            req = SACRequest("https://raw.githubusercontent.com/jsnli/steamappidlist/refs/heads/master/data/games_appid.json", "UpdateAppList").req
         except Exception:
             gameFoundStatus.config(text=f"An error has occurred")
             return
