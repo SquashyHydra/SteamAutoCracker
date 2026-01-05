@@ -108,7 +108,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
             if os.path.islink(path): # If it's a symlink, remove the link only
                 os.unlink(path)
                 print(f"   Removed symlink {file}")
-            if os.path.isdir(path):
+            elif os.path.isdir(path):
                 shutil.rmtree(path)
                 print(f"   Removed folder {file} and its content")
 
