@@ -2,8 +2,8 @@ __pycache__/
 output/
 dist/
 build/
-*.spec
 config.ini
 applist.txt
-*.log
 compile.bat
+*.spec
+*.log
