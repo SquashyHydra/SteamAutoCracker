@@ -5,6 +5,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
     import os
     import subprocess
     import shutil
+    import tempfile
     from time import sleep
     import zipfile
     import io
@@ -26,25 +27,31 @@ try: # Handles Python errors to write them to a log file so they can be reported
             self.DoRequest()
 
         def DoRequest(self):
-            self.tries += 1
-            req = requests.get(self.url, timeout=10)
-            if not req.ok:
-                if self.tries < RETRY_MAX:
-                    # Do another try
-                    print(f"- {self.name} request failed, retrying in {RETRY_DELAY}s... ({self.tries}/{RETRY_MAX} tries)")
-                    sleep(RETRY_DELAY)
-                    self.DoRequest()
+            # Iterative retry with exception handling (safer for frozen executables)
+            while self.tries < RETRY_MAX:
+                self.tries += 1
+                try:
+                    req = requests.get(self.url, timeout=10)
+                except requests.exceptions.RequestException:
+                    req = None
+
+                if req is None or not getattr(req, 'ok', False):
+                    if self.tries < RETRY_MAX:
+                        print(f"- {self.name} request failed, retrying in {RETRY_DELAY}s... ({self.tries}/{RETRY_MAX} tries)")
+                        sleep(RETRY_DELAY)
+                        continue
+                    else:
+                        print(f"[!] Connection failed after {RETRY_MAX} tries. Are you connected to the Internet? Is GitHub online?")
+                        raise Exception(f"SACRequest: Connection failed after {RETRY_MAX} tries")
                 else:
-                    print(f"[!] Connection failed after {RETRY_MAX} tries. Are you connected to the Internet? Is GitHub online?")
-                    raise Exception(f"SACRequest: Connection failed after {RETRY_MAX} tries")
-            else:
-                self.req = req
+                    self.req = req
+                    return
     
     
     print(f"Steam Auto Cracker GUI - Autoupdater v{VERSION}\n")
     
     print("This program will automatically update Steam Auto Cracker GUI, please DO NOT CLOSE IT.\nRetrieving the latest version...")
-    req = SACRequest("https://raw.githubusercontent.com/BigBoiCJ/SteamAutoCracker/autoupdater/latestversion.json", "RetrieveLatestVersionJson").req
+    req = SACRequest("https://raw.githubusercontent.com/SquashyHydra/SteamAutoCracker/autoupdater/latestversion.json", "RetrieveLatestVersionJson").req
     data = req.json()
     latestversion = data["version"]
     print(f"Latest version found: {latestversion}")
@@ -55,17 +62,28 @@ try: # Handles Python errors to write them to a log file so they can be reported
     req = SACRequest(download_link, "DownloadLatestRelease").req
     
     print(f"Finished downloading the latest release archive!\nExtracting the archive...")
-    with zipfile.ZipFile(io.BytesIO(req.content)) as zip:
-        folder_name = zip.namelist()[0] # "Steam Auto Cracker GUI (vX.X.X)/"
-        zip.extractall()
-    # We should now have a new "Steam Auto Cracker GUI (vX.X.X)/" folder. Remove the current SAC installation.
-    
+
+    # Extract into a temporary directory to avoid issues when running as a frozen executable
+    tempdir = tempfile.mkdtemp()
+    with zipfile.ZipFile(io.BytesIO(req.content)) as z:
+        namelist = z.namelist()
+        if not namelist:
+            raise Exception("Downloaded archive is empty")
+
+        # Determine if archive has a single top-level folder
+        tops = [n.split('/')[0] for n in namelist if n and not n.startswith('/')]
+        top_folder = tops[0] if tops and all(t == tops[0] for t in tops) else None
+
+        z.extractall(tempdir)
+
     print("Finished extracting the archive!\nRemoving the old installation... (DO NOT CLOSE THE AUTOUPDATER!)\n")
-    files = os.listdir()
-    for file in files:
+
+    # Remove old installation files/folders in the current working directory (be careful!)
+    cwd_files = os.listdir()
+    for file in cwd_files:
         if file in IGNORE_FILES: # Ignore specific files/directories
             continue
-        
+
         skip_file = False
         for ext in IGNORE_EXTS: # Ignore specific file extensions
             if file.endswith(ext):
@@ -73,23 +91,37 @@ try: # Handles Python errors to write them to a log file so they can be reported
                 break
         if skip_file:
             continue
-        
-        if file == folder_name[:-1]: # Ignore the new installation (without the last "/")
-            continue
-        
+
         if os.path.isfile(file): # If file
             os.remove(file)
             print(f"   Removed file {file}")
         else: # If folder/directory
-            shutil.rmtree(file)
-            print(f"   Removed folder {file} and its content")
-    
+            if os.path.islink(file): # If it's a symlink, remove the link only
+                os.unlink(file)
+                print(f"   Removed symlink {file}")
+            if os.path.isdir(file):
+                shutil.rmtree(file)
+                print(f"   Removed folder {file} and its content")
+
     print("\nFinished removing the old installation.\nMoving the new installation... (DO NOT CLOSE THE AUTOUPDATER!)")
-    files = os.listdir(folder_name)
+
+    # Source directory inside tempdir: either the top folder or the tempdir itself
+    if top_folder:
+        extracted_root = os.path.join(tempdir, top_folder)
+    else:
+        extracted_root = tempdir
+
+    files = os.listdir(extracted_root)
     for file in files:
-        shutil.move(folder_name + file, "./") # Move to the current directory
-    os.rmdir(folder_name[:-1]) # Now remove the extracted directory
-    
+        src = os.path.join(extracted_root, file)
+        dst = os.path.join(os.getcwd(), file)
+        shutil.move(src, dst)
+    # Cleanup temporary extraction directory
+    try:
+        shutil.rmtree(tempdir)
+    except Exception:
+        pass
+
     print("Finished moving the new installation.\n\nUpdate successful! Opening SAC GUI in 3 seconds...")
     sleep(3)
     subprocess.Popen("steam_auto_cracker_gui.exe") # Open SAC GUI
