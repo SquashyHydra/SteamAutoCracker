@@ -33,8 +33,8 @@ try: # Handles Python errors to write them to a log file so they can be reported
 
     EXTS_TO_REPLACE = (".txt", ".ini", ".cfg")
 
-    GITHUB_LATESTVERSIONJSON = "https://raw.githubusercontent.com/SquashyHydra/SteamAutoCracker/autoupdater/latestversion.json"
-    GITHUB_AUTOUPDATER = "https://github.com/SquashyHydra/SteamAutoCracker/raw/refs/heads/autoupdater/steam_auto_cracker_gui_autoupdater.exe"
+    GITHUB_LATESTVERSIONJSON = "https://raw.githubusercontent.com/BigBoiCJ/SteamAutoCracker/autoupdater/latestversion.json"
+    GITHUB_AUTOUPDATER = "https://github.com/BigBoiCJ/SteamAutoCracker/raw/refs/heads/autoupdater/steam_auto_cracker_gui_autoupdater.exe"
 
     def OnTkinterError(exc, val, tb):
         # Handle Tkinter Python errors
@@ -1320,4 +1320,5 @@ except Exception:
         traceback.print_exc(file=errorFile)
     traceback.print_exc()
     print("---\nError written to error.log, please report it on GitHub or cs.rin.ru\nMake sure to blank any personal detail.")
+
 
