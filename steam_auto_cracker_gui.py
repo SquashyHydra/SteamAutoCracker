@@ -32,7 +32,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
     EXTS_TO_REPLACE = (".txt", ".ini", ".cfg")
 
     GITHUB_LATESTVERSIONJSON = "https://raw.githubusercontent.com/SquashyHydra/SteamAutoCracker/autoupdater/latestversion.json"
-    GITHUB_AUTOUPDATER = "https://raw.githubusercontent.com/BigBoiCJ/SteamAutoCracker/autoupdater/steam_auto_cracker_gui_autoupdater.exe"
+    GITHUB_AUTOUPDATER = "https://github.com/SquashyHydra/SteamAutoCracker/raw/refs/heads/autoupdater/steam_auto_cracker_gui.exe"
 
     def OnTkinterError(exc, val, tb):
         # Handle Tkinter Python errors
@@ -1008,13 +1008,12 @@ try: # Handles Python errors to write them to a log file so they can be reported
         latestversion = data["version"]
         if latestversion == VERSION: # The latest stable version is the one we're running
             updatesButton.config(text="SAC is up to date!", state=tk.NORMAL)
-            return
+        else:
+            updatesButton.config(text="SAC is outdated!", state=tk.NORMAL)
 
         global release_link
         release_link = data["release"]
         release_link = release_link.replace("[VERSION]", latestversion)
-
-        updatesButton.config(text="SAC is outdated!", state=tk.NORMAL)
         DisplayUpdate()
 
     def DisplayUpdate():
@@ -1032,7 +1031,8 @@ try: # Handles Python errors to write them to a log file so they can be reported
         updateDisplayButtonsFrame.pack(pady=(5,20))
 
         global updateDisplayButtonUpdate
-        updateDisplayButtonUpdate = ttk.Button(updateDisplayButtonsFrame, text="Update now", command=UpdateSAC, padding=3)
+        state = tk.DISABLED if latestversion == VERSION else tk.NORMAL
+        updateDisplayButtonUpdate = ttk.Button(updateDisplayButtonsFrame, text="Update now", command=UpdateSAC, padding=3, state=state)
         updateDisplayButtonUpdate.grid(row=0, column=0)
 
         global updateDisplayButtonCopy
