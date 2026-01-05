@@ -33,8 +33,8 @@ try: # Handles Python errors to write them to a log file so they can be reported
 
     EXTS_TO_REPLACE = (".txt", ".ini", ".cfg")
 
-    GITHUB_LATESTVERSIONJSON = "https://raw.githubusercontent.com/BigBoiCJ/SteamAutoCracker/autoupdater/latestversion.json"
-    GITHUB_AUTOUPDATER = "https://github.com/BigBoiCJ/SteamAutoCracker/raw/refs/heads/autoupdater/steam_auto_cracker_gui_autoupdater.exe"
+    GITHUB_LATESTVERSIONJSON = "https://raw.githubusercontent.com/SquashyHydra/SteamAutoCracker/autoupdater/latestversion.json"
+    GITHUB_AUTOUPDATER = "https://github.com/SquashyHydra/SteamAutoCracker/raw/refs/heads/autoupdater/steam_auto_cracker_gui_autoupdater.exe"
 
     def OnTkinterError(exc, val, tb):
         # Handle Tkinter Python errors
@@ -1212,7 +1212,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
     style.configure("TText", padding=6)
 
     ttk.Label(root, text=f"SteamAutoCracker GUI v{VERSION}", font=FONT2, padding=0).pack(pady=(10, 0), anchor="center")
-    ttk.Label(root, text="by BigBoiCJ", padding=0).pack(pady=(0, 0), anchor="center")
+    ttk.Label(root, text="by SquashyHydra", padding=0).pack(pady=(0, 0), anchor="center")
 
     updatesFrame = tk.Frame(root)
     updatesButton = ttk.Button(updatesFrame, text="Check for updates", command=CheckUpdates, padding=0)
@@ -1287,7 +1287,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
     logs_text = tk.Text(root, height=15, width=100)
     logs_text.pack(pady=10, padx=10)
 
-    text = f"SteamAutoCracker GUI v{VERSION} by BigBoiCJ"
+    text = f"SteamAutoCracker GUI v{VERSION} by SquashyHydra"
     buf = ""
     for i in range(len(text)):
         buf += "-"
@@ -1320,5 +1320,6 @@ except Exception:
         traceback.print_exc(file=errorFile)
     traceback.print_exc()
     print("---\nError written to error.log, please report it on GitHub or cs.rin.ru\nMake sure to blank any personal detail.")
+
 
 
