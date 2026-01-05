@@ -14,8 +14,10 @@ try: # Handles Python errors to write them to a log file so they can be reported
     import shutil
     from time import sleep
     from sys import exit
+    import re
+    import unicodedata
 
-    VERSION = "2.2.3"
+    VERSION = "2.2.4"
 
     RETRY_DELAY = 15 # Delay in seconds before retrying a failed request. (default, can be modified in config.ini)
     RETRY_MAX = 30 # Number of failed tries (includes the first try) after which SAC will stop trying and quit. (default, can be modified in config.ini)
@@ -32,7 +34,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
     EXTS_TO_REPLACE = (".txt", ".ini", ".cfg")
 
     GITHUB_LATESTVERSIONJSON = "https://raw.githubusercontent.com/SquashyHydra/SteamAutoCracker/autoupdater/latestversion.json"
-    GITHUB_AUTOUPDATER = "https://raw.githubusercontent.com/BigBoiCJ/SteamAutoCracker/autoupdater/steam_auto_cracker_gui_autoupdater.exe"
+    GITHUB_AUTOUPDATER = "https://github.com/SquashyHydra/SteamAutoCracker/raw/refs/heads/autoupdater/steam_auto_cracker_gui.exe"
 
     def OnTkinterError(exc, val, tb):
         # Handle Tkinter Python errors
@@ -193,8 +195,93 @@ try: # Handles Python errors to write them to a log file so they can be reported
             UpdateAppList()
             return FindInAppList(appName)
 
+        # Helper normalizers: keep-space and nospace versions, plus roman numeral handling
+        def _normalize_keep_space(s: str) -> str:
+            s = (s or "")
+            s = unicodedata.normalize('NFKD', s)
+            s = ''.join(c for c in s if not unicodedata.combining(c))
+            s = s.lower()
+            # remove characters except a-z, 0-9 and spaces
+            s = re.sub(r'[^a-z0-9 ]+', '', s)
+            s = re.sub(r'\s+', ' ', s).strip()
+            return s
+
+        def _normalize_nospace(s: str) -> str:
+            return re.sub(r'[^a-z0-9]', '', _normalize_keep_space(s))
+
+        def _roman_to_int(s: str):
+            s = s.upper()
+            if not re.fullmatch(r'[MDCLXVI]+', s):
+                return None
+            roman_map = {'I':1,'V':5,'X':10,'L':50,'C':100,'D':500,'M':1000}
+            total = 0
+            prev = 0
+            for ch in reversed(s):
+                val = roman_map.get(ch)
+                if val is None:
+                    return None
+                if val < prev:
+                    total -= val
+                else:
+                    total += val
+                    prev = val
+            if total <= 0 or total > 3999:
+                return None
+            return total
+
+        def _int_to_roman(num: int):
+            if not (1 <= num <= 3999):
+                return None
+            vals = [1000,900,500,400,100,90,50,40,10,9,5,4,1]
+            syms = ["M","CM","D","CD","C","XC","L","XL","X","IX","V","IV","I"]
+            res = ""
+            i = 0
+            while num > 0:
+                for _ in range(num // vals[i]):
+                    res += syms[i]
+                    num -= vals[i]
+                i += 1
+            return res
+
+        def _replace_roman_with_digits(text: str) -> str:
+            def _sub(m):
+                val = _roman_to_int(m.group(0))
+                return str(val) if val is not None else m.group(0)
+            return re.sub(r'\b[MDCLXVI]+\b', _sub, text, flags=re.IGNORECASE)
+
+        def _replace_digits_with_roman(text: str) -> str:
+            def _sub(m):
+                try:
+                    num = int(m.group(0))
+                except Exception:
+                    return m.group(0)
+                r = _int_to_roman(num)
+                return r if r is not None else m.group(0)
+            return re.sub(r'\b\d+\b', _sub, text)
+
+        def _variants(s: str):
+            s = s or ""
+            v = set()
+            originals = [s, _replace_roman_with_digits(s), _replace_digits_with_roman(s)]
+            for o in originals:
+                keep = _normalize_keep_space(o)
+                nosp = _normalize_nospace(o)
+                v.add(keep)
+                v.add(nosp)
+            return v
+
+        target_variants = _variants(appName)
+
         for app in data:
-            if app["name"].lower() == appName.lower():
+            appNameInList = app.get("name", "")
+            # fast exact match first
+            if appNameInList.lower() == appName.lower():
+                return app["appid"]
+
+            name_variants = _variants(appNameInList)
+
+            # Check intersection between variant sets
+            if target_variants & name_variants:
                 return app["appid"]
 
         update_logs("[!] The App was not found, make sure you entered EXACTLY the Steam Game's name (watch it on Steam)")
@@ -1008,13 +1095,12 @@ try: # Handles Python errors to write them to a log file so they can be reported
         latestversion = data["version"]
         if latestversion == VERSION: # The latest stable version is the one we're running
             updatesButton.config(text="SAC is up to date!", state=tk.NORMAL)
-            return
+        else:
+            updatesButton.config(text="SAC is outdated!", state=tk.NORMAL)
 
         global release_link
         release_link = data["release"]
         release_link = release_link.replace("[VERSION]", latestversion)
-
-        updatesButton.config(text="SAC is outdated!", state=tk.NORMAL)
         DisplayUpdate()
 
     def DisplayUpdate():
@@ -1032,7 +1118,8 @@ try: # Handles Python errors to write them to a log file so they can be reported
         updateDisplayButtonsFrame.pack(pady=(5,20))
 
         global updateDisplayButtonUpdate
-        updateDisplayButtonUpdate = ttk.Button(updateDisplayButtonsFrame, text="Update now", command=UpdateSAC, padding=3)
+        state = tk.DISABLED if latestversion == VERSION else tk.NORMAL
+        updateDisplayButtonUpdate = ttk.Button(updateDisplayButtonsFrame, text="Update now", command=UpdateSAC, padding=3, state=state)
         updateDisplayButtonUpdate.grid(row=0, column=0)
 
         global updateDisplayButtonCopy
