@@ -1,4 +1,5 @@
 import traceback
+import sys
 
 try: # Handles Python errors to write them to a log file so they can be reported and fixed more easily.
     import requests
@@ -76,10 +77,16 @@ try: # Handles Python errors to write them to a log file so they can be reported
 
         z.extractall(tempdir)
 
-    print("Finished extracting the archive!\nRemoving the old installation... (DO NOT CLOSE THE AUTOUPDATER!)\n")
+        print("Finished extracting the archive!\nRemoving the old installation... (DO NOT CLOSE THE AUTOUPDATER!)\n")
 
-    # Remove old installation files/folders in the current working directory (be careful!)
-    cwd_files = os.listdir()
+        # Determine base directory where the running single-file exe or the script is located
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Remove old installation files/folders in the base directory (be careful!)
+    cwd_files = os.listdir(base_dir)
     for file in cwd_files:
         if file in IGNORE_FILES: # Ignore specific files/directories
             continue
@@ -92,15 +99,17 @@ try: # Handles Python errors to write them to a log file so they can be reported
         if skip_file:
             continue
 
-        if os.path.isfile(file): # If file
-            os.remove(file)
+        path = os.path.join(base_dir, file)
+
+        if os.path.isfile(path): # If file
+            os.remove(path)
             print(f"   Removed file {file}")
         else: # If folder/directory
-            if os.path.islink(file): # If it's a symlink, remove the link only
-                os.unlink(file)
+            if os.path.islink(path): # If it's a symlink, remove the link only
+                os.unlink(path)
                 print(f"   Removed symlink {file}")
-            if os.path.isdir(file):
-                shutil.rmtree(file)
+            if os.path.isdir(path):
+                shutil.rmtree(path)
                 print(f"   Removed folder {file} and its content")
 
     print("\nFinished removing the old installation.\nMoving the new installation... (DO NOT CLOSE THE AUTOUPDATER!)")
@@ -114,7 +123,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
     files = os.listdir(extracted_root)
     for file in files:
         src = os.path.join(extracted_root, file)
-        dst = os.path.join(os.getcwd(), file)
+        dst = os.path.join(base_dir, file)
         shutil.move(src, dst)
     # Cleanup temporary extraction directory
     try:
@@ -124,14 +133,28 @@ try: # Handles Python errors to write them to a log file so they can be reported
 
     print("Finished moving the new installation.\n\nUpdate successful! Opening SAC GUI in 3 seconds...")
     sleep(3)
-    subprocess.Popen("steam_auto_cracker_gui.exe") # Open SAC GUI
+    # Open SAC GUI from the base directory
+    try:
+        subprocess.Popen([os.path.join(base_dir, "steam_auto_cracker_gui.exe")], cwd=base_dir)
+    except Exception:
+        subprocess.Popen("steam_auto_cracker_gui.exe") # fallback
     exit()
 
 except Exception:
-    # Handle Python errors
+    # Handle Python errors and write log next to the executable/script
     print("\n[!!!] A Python error occurred! Writing the error to the autoupdater_error.log file.\n---")
-    with open("autoupdater_error.log", "w", encoding="utf-8") as errorFile:
-        errorFile.write(f"SteamAutoCracker GUI - Autoupdater v{VERSION}\n---\nA Python error occurred!\nPlease report it on GitHub or cs.rin.ru\nMake sure to blank any personal detail.\n---\n\n")
+    try:
+        if getattr(sys, 'frozen', False):
+            error_dir = os.path.dirname(sys.executable)
+        else:
+            error_dir = os.path.dirname(os.path.abspath(__file__))
+    except Exception:
+        error_dir = os.getcwd()
+
+    version = globals().get("VERSION", "unknown")
+    log_path = os.path.join(error_dir, "autoupdater_error.log")
+    with open(log_path, "w", encoding="utf-8") as errorFile:
+        errorFile.write(f"SteamAutoCracker GUI - Autoupdater v{version}\n---\nA Python error occurred!\nPlease report it on GitHub or cs.rin.ru\nMake sure to blank any personal detail.\n---\n\n")
         traceback.print_exc(file=errorFile)
     traceback.print_exc()
-    print("---\nError written to autoupdater_error.log, please report it on GitHub or cs.rin.ru\nMake sure to blank any personal detail.")
+    print(f"---\nError written to {log_path}, please report it on GitHub or cs.rin.ru\nMake sure to blank any personal detail.")
