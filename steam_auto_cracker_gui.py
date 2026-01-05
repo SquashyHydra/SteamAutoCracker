@@ -705,7 +705,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
                                     break
                                 else:
                                     steamInterfaces.append(f"{key}={value}")
-                                    break
+                                
                     else:
                         shutil.copyfile(os.path.join(root_dir, fileName), os.path.join(dllAbsoluteRelativeLocation, fileName))
 
