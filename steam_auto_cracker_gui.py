@@ -31,7 +31,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
 
     EXTS_TO_REPLACE = (".txt", ".ini", ".cfg")
 
-    GITHUB_LATESTVERSIONJSON = "https://raw.githubusercontent.com/BigBoiCJ/SteamAutoCracker/autoupdater/latestversion.json"
+    GITHUB_LATESTVERSIONJSON = "https://raw.githubusercontent.com/SquashyHydra/SteamAutoCracker/autoupdater/latestversion.json"
     GITHUB_AUTOUPDATER = "https://raw.githubusercontent.com/BigBoiCJ/SteamAutoCracker/autoupdater/steam_auto_cracker_gui_autoupdater.exe"
 
     def OnTkinterError(exc, val, tb):
@@ -535,20 +535,21 @@ try: # Handles Python errors to write them to a log file so they can be reported
                         elif fileName == "steam_api.dll" or fileName == "steam_api64.dll": # No existing file, and this file is the steam_api(64).dll one
                             continue # Ignore this file
                     
+                    bit_type = ""
+                    for file in os.listdir(dllCurrentLocation):
+                        if "steam_api" in file and file.endswith(".dll"):
+                            if "64" in file:
+                                bit_type = "64"
+                            else:
+                                bit_type = "86"
+                    steam_dll = "steam_api64.dll" if bit_type == "64" else "steam_api.dll"
+
                     if 'game_rune' in config["Crack"]["SelectedCrack"]:
-                        bit_type = ""
-                        for file in os.listdir(dllCurrentLocation):
-                            if "steam_api" in file and file.endswith(".dll"):
-                                if "64" in file:
-                                    bit_type = "64"
-                                else:
-                                    bit_type = "86"
-                        steam_dll = "steam_api64.dll" if bit_type == "64" else "steam_api.dll"
-                        # Create redirect for Steam dll
+                        # Backup and Create redirect for Steam dll
                         if not os.path.exists(os.path.join(dllCurrentLocation, f"{steam_dll.split('.')[0]}.rde")):
                             shutil.copyfile(os.path.join(dllCurrentLocation, steam_dll), os.path.join(dllCurrentLocation, f"{steam_dll}.bak"))
                             shutil.copyfile(os.path.join(dllCurrentLocation, steam_dll), os.path.join(dllCurrentLocation, f"{steam_dll.split('.')[0]}.rde"))
-                        # Copy RUNE DLL's
+                        # Copy RUNE DLL's and steam_emu.ini
                         shutil.copyfile(os.path.join(root_dir, "steam_emu.ini"), os.path.join(dllCurrentLocation, "steam_emu.ini"))
                         if bit_type == "64":
                             shutil.copyfile(os.path.join(root_dir, "GameOverlayRenderer64.dll"), os.path.join(dllCurrentLocation, "GameOverlayRenderer64.dll"))
@@ -559,17 +560,17 @@ try: # Handles Python errors to write them to a log file so they can be reported
                             shutil.copyfile(os.path.join(root_dir, "rune.dll"), os.path.join(dllCurrentLocation, "rune.dll"))
                             shutil.copyfile(os.path.join(root_dir, "steamclient.dll"), os.path.join(dllCurrentLocation, "steamclient.dll"))
                         
-                        # Edit steam_api dll
+                        # Overwrite SHELL32 module with RUNE(64) module
                         with open(os.path.join(dllCurrentLocation, steam_dll), "r+b") as file:
                             content = file.read()
-                            if "64" in steam_dll:
+                            if bit_type in steam_dll:
                                 content = content.replace(b'SHELL32.dll', f'RUNE64'.encode('utf-8'))
                             else:
                                 content = content.replace(b'SHELL32.dll', f'RUNE'.encode('utf-8'))
                             file.seek(0)
                             file.write(content)
 
-                        # get interfaces from Steam 
+                        # get interfaces from steam_api(64).dll
                         first_interface = "SteamUser0"
                         last_interface = "SteamGameServerStats0"
                         with open(os.path.join(dllCurrentLocation, steam_dll), "r+b") as file:
@@ -648,7 +649,14 @@ try: # Handles Python errors to write them to a log file so they can be reported
                         with open(os.path.join(dllAbsoluteRelativeLocation, fileName), "w", encoding="utf-8") as file:
                             file.write(fileContent)
 
-                    update_logs("Created new file " + relativeRootDir + fileName)
+                    if 'game_rune' in config["Crack"]["SelectedCrack"]:
+                        if bit_type in steam_dll:
+                            if bit_type in fileName:
+                                update_logs("Created new file " + relativeRootDir + fileName)
+                        if fileName.endswith(".ini"):
+                            update_logs("Created new file " + relativeRootDir + fileName)
+                    else:
+                        update_logs("Created new file " + relativeRootDir + fileName)
 
 
         update_logs("\n-----\nFinished cracking the game!")

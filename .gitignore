@@ -3,3 +3,4 @@ output/
 config.ini
 applist.txt
 *.log
+compile.bat
