@@ -210,26 +210,23 @@ try: # Handles Python errors to write them to a log file so they can be reported
             return re.sub(r'[^a-z0-9]', '', _normalize_keep_space(s))
 
         def _roman_to_int(s: str):
-            s = s.upper()
-            if not re.fullmatch(r'[MDCLXVI]+', s):
+            s = s.strip().upper()
+            if not re.fullmatch(r"^M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$", s):
                 return None
-            roman_map = {'I':1,'V':5,'X':10,'L':50,'C':100,'D':500,'M':1000}
+
+            vals = {"M":1000, "CM":900, "D":500, "CD":400, "C":100, "XC":90, "L":50, "XL":40, "X":10, "IX":9, "V":5, "IV":4, "I":1}
+            i = 0
             total = 0
-            prev = 0
-            for ch in reversed(s):
-                val = roman_map.get(ch)
-                if val is None:
-                    return None
-                if val < prev:
-                    total -= val
+            while i < len(s):
+                if i+1 < len(s) and s[i:i+2] in vals:
+                    total += vals[s[i:i+2]]; i += 2
                 else:
-                    total += val
-                    prev = val
-            if total <= 0 or total > 3999:
-                return None
+                    total += vals[s[i]]; i += 1
             return total
 
         def _int_to_roman(num: int):
+            if not isinstance(num, int) or isinstance(num, bool):
+                return None
             if not (1 <= num <= 3999):
                 return None
             vals = [1000,900,500,400,100,90,50,40,10,9,5,4,1]
@@ -483,7 +480,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
         root.update()
 
         dllLocations = []
-        for root_dir, dirs, files in os.walk(folder_path):
+        for root_dir, __, files in os.walk(folder_path):
             apiFile = ""
 
             # Use Steamless if configured
@@ -526,11 +523,11 @@ try: # Handles Python errors to write them to a log file so they can be reported
                     shutil.move(root_dir + "/" + config["FileNames"]["SteamAPI"], root_dir + "/steam_api.dll")
                     if 'game_rune' in config["Crack"]["SelectedCrack"]:
                         if os.path.exists(root_dir + "/rune.dll"):
-                            os.remove(root_dir + "/steam_api.rde")
-                            os.remove(root_dir + "/rune.dll")
-                            os.remove(root_dir + "/steam_emu.ini")
-                            os.remove(root_dir + "/GameOverlayRenderer.dll")
-                            os.remove(root_dir + "/steamclient.dll")
+                            os.remove(root_dir + "/steam_api.rde") if os.path.exists(root_dir + "/steam_api.rde") else None
+                            os.remove(root_dir + "/rune.dll") if os.path.exists(root_dir + "/rune.dll") else None
+                            os.remove(root_dir + "/steam_emu.ini") if os.path.exists(root_dir + "/steam_emu.ini") else None
+                            os.remove(root_dir + "/GameOverlayRenderer.dll") if os.path.exists(root_dir + "/GameOverlayRenderer.dll") else None
+                            os.remove(root_dir + "/steamclient.dll") if os.path.exists(root_dir + "/steamclient.dll") else None
 
                 apiFile = root_dir + "/steam_api.dll"
                 runeFile = root_dir + "/steam_api.rde"
@@ -552,12 +549,11 @@ try: # Handles Python errors to write them to a log file so they can be reported
                     shutil.move(root_dir + "/" + config["FileNames"]["SteamAPI64"], root_dir + "/steam_api64.dll")
                     if 'game_rune' in config["Crack"]["SelectedCrack"]:
                         if os.path.exists(root_dir + "/rune64.dll"):
-                            os.remove(root_dir + "/steam_api64.rde")
-                            os.remove(root_dir + "/rune64.dll")
-                            os.remove(root_dir + "/steam_emu.ini")
-                            os.remove(root_dir + "/GameOverlayRenderer64.dll")
-                            os.remove(root_dir + "/steamclient64.dll")
-
+                            os.remove(root_dir + "/steam_api64.rde") if os.path.exists(root_dir + "/steam_api64.rde") else None
+                            os.remove(root_dir + "/rune64.dll") if os.path.exists(root_dir + "/rune64.dll") else None
+                            os.remove(root_dir + "/steam_emu.ini") if os.path.exists(root_dir + "/steam_emu.ini") else None
+                            os.remove(root_dir + "/GameOverlayRenderer64.dll") if os.path.exists(root_dir + "/GameOverlayRenderer64.dll") else None
+                            os.remove(root_dir + "/steamclient64.dll") if os.path.exists(root_dir + "/steamclient64.dll") else None
                 apiFile = root_dir + "/steam_api64.dll"
                 runeFile = root_dir + "/steam_api64.rde"
                 try:
@@ -594,6 +590,17 @@ try: # Handles Python errors to write them to a log file so they can be reported
                         update_logs("Created new directory " + relativeRootDir + dir)
                         root.update()
 
+                bit_type = ""
+                for file in os.listdir(dllCurrentLocation):
+                    if "steam_api" in file and file.endswith(".dll"):
+                        if "64" in file:
+                            bit_type = "64"
+                            break
+                        else:
+                            bit_type = "86"
+                            break
+                steam_dll = "steam_api64.dll" if bit_type == "64" else "steam_api.dll"
+
                 # Create all files
                 for fileName in files:
                     root.update()
@@ -621,15 +628,6 @@ try: # Handles Python errors to write them to a log file so they can be reported
                                 update_logs("Backupped old file " + relativeRootDir + fileName + " -> " + newName)
                         elif fileName == "steam_api.dll" or fileName == "steam_api64.dll": # No existing file, and this file is the steam_api(64).dll one
                             continue # Ignore this file
-                    
-                    bit_type = ""
-                    for file in os.listdir(dllCurrentLocation):
-                        if "steam_api" in file and file.endswith(".dll"):
-                            if "64" in file:
-                                bit_type = "64"
-                            else:
-                                bit_type = "86"
-                    steam_dll = "steam_api64.dll" if bit_type == "64" else "steam_api.dll"
 
                     if 'game_rune' in config["Crack"]["SelectedCrack"]:
                         # Backup and Create redirect for Steam dll
@@ -699,13 +697,14 @@ try: # Handles Python errors to write them to a log file so they can be reported
                         }
                         steamInterfaces = []
                         for key, value in rune_interface_index.items():
+                            matched = False
                             for interface in interfaces_list:
                                 if key in interface:
                                     steamInterfaces.append(f"{key}={interface}")
+                                    matched = True
                                     break
-                                else:
-                                    steamInterfaces.append(f"{key}={value}")
-                                
+                            if not matched:
+                                steamInterfaces.append(f"{key}={value}")
                     else:
                         shutil.copyfile(os.path.join(root_dir, fileName), os.path.join(dllAbsoluteRelativeLocation, fileName))
 
@@ -943,7 +942,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
     # ----- Crack List -----
 
     crackList = { # A list of all selectable cracks
-        "game_rune": ["R.U.N.E (Game)", "The R.U.N.E crack is simple and can crack a full game. It will unlock all DLCs and will also prevent the game from connecting to the internet.\nThe game folder can then freely be shared with others as the crack is contained inside the game folder."],
+        "game_rune": ["R.U.N.E (Game)", "The R.U.N.E crack is simple and can crack a full game. It will unlock all DLCs and will also blocked internet connection, but LAN is enabled.\nThe game folder can then freely be shared with others as the crack is contained inside the game folder."],
         "game_ali213": ["ALI213 (Game)", "The ALI213 crack is simple and can crack a full game. It will unlock all DLCs and will also prevent the game from connecting to the internet.\nThe game folder can then freely be shared with others as the crack is contained inside the game folder.\nIf it doesn't work, consider using Goldberg instead."],
         "game_goldberg": ["Goldberg (Game)", "The Goldberg (experimental) crack is similar to ALI213's one.\nIt is open-source, which is better, but might not work with older games, due to SAC's current partial support.\nThis crack will however work better for recent games, where ALI213 could fail.\nInternet connection is blocked, but LAN is enabled."],
         "dlc_creamapi": ["CreamAPI (DLC)", "The CreamAPI crack will unlock all DLCs but will not crack the main game. It is meant to be used with bought copies of a game, with your real Steam account.\nOnly use this is you have purchased the game on Steam and want to unlock its DLCs.\nWill not work for most online games, but might exceptionally work with some like Beat Saber."]
@@ -1101,7 +1100,9 @@ try: # Handles Python errors to write them to a log file so they can be reported
         global release_link
         release_link = data["release"]
         release_link = release_link.replace("[VERSION]", latestversion)
-        DisplayUpdate()
+
+        if VERSION < latestversion:
+            DisplayUpdate()
 
     def DisplayUpdate():
         top = tk.Toplevel(root)
