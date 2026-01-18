@@ -1,14 +1,16 @@
-import ast
-import base64
 import requests
-import json
-import bs4
+import ast
+import configparser
+import base64
+import os
+import time
 
-config_file = "config.ini"
+last_appid="last_appid.txt"
+steam_applist="applist.txt"
+config_file="config.ini"
 
-default_SteamLogin = {
-    'sessionid': 'your_sessionid',
-    'steamLoginSecure': 'your_steamLoginSecure',
+default_SteamSettings = {
+    'key': 'steam_web_api_key_here',
 }
 
 default_GithubLogin = {
@@ -18,172 +20,122 @@ default_GithubLogin = {
     'GithubBranch': 'main',
 }
 
-def create_config(config_file="config.ini"):
-    config = {}
-    config['SteamLogin'] = default_SteamLogin
+def create_config(filename=config_file):
+    config = configparser.ConfigParser()
+    config['SteamSettings'] = default_SteamSettings
     config['GithubLogin'] = default_GithubLogin
-    with open(config_file, 'w') as configfile:
-        configfile.write(json.dumps(config, indent=4))
+    with open(filename, 'w') as configfile:
+        config.write(configfile)
 
-def load_config(config_file="config.ini"):
-    config = {}
+def load_config(filename=config_file):
+    config = configparser.ConfigParser()
     try:
-        with open(config_file, 'r') as configfile:
-            configfile_content = json.loads(configfile.read())
-
-        config['SteamLogin'] = configfile_content.get('SteamLogin', {})
-        config['GithubLogin'] = configfile_content.get('GithubLogin', {})
-    except (FileNotFoundError, json.JSONDecodeError):
+        config.read(filename)
+        steam_settings = config['SteamSettings']
+        github_login = config['GithubLogin']
+    except (KeyError, configparser.Error):
         create_config()
-        config = load_config(config_file)
+        return load_config()
 
-    for key, _ in default_SteamLogin.items():
-        if config['SteamLogin'][key] == default_SteamLogin[key]:
-            print(f"Please update the '{key}' in the 'SteamLogin' section of {config_file}.")
+    for key, _ in default_SteamSettings.items():
+        if steam_settings.get(key) == default_SteamSettings[key]:
+            print(f"Please update the '{key}' in the 'SteamSettings' section of config.ini.")
             exit(1)
     for key, _ in default_GithubLogin.items():
-        if config['GithubLogin'][key] == default_GithubLogin[key]:
-            print(f"Please update the '{key}' in the 'GithubLogin' section of {config_file}.")
+        if github_login.get(key) == default_GithubLogin[key]:
+            print(f"Please update the '{key}' in the 'GithubLogin' section of config.ini.")
             exit(1)
-    return config
+
+    return {
+        'SteamSettings': steam_settings,
+        'GithubLogin': github_login
+    }
 
 config = load_config()
 
-cookies = {
-    'birthtime': '1044482401',
-    'lastagecheckage': '6-February-2003',
-    'sessionid': config['SteamLogin']['sessionid'],
-    'steamLoginSecure': config['SteamLogin']['steamLoginSecure']
-}
-
-gh_token = config['GithubLogin']['GithubToken']
-gh_owner = config['GithubLogin']['GithubOwner']
-gh_repo = config['GithubLogin']['GithubRepo']
-gh_branch = config['GithubLogin']['GithubBranch']
-
-def get_apphub_appname(appID):
-    url = f"https://store.steampowered.com/app/{appID}"
+def save_last_appid(appid, filename=last_appid):
     try:
-        response = requests.get(url, cookies=cookies)
-        response.raise_for_status()
-        soup = bs4.BeautifulSoup(response.text, 'html.parser')
-        app_name_tag = soup.find('div', class_='apphub_AppName')
-        if app_name_tag:
-            return app_name_tag.text.strip()
-        else:
-            return None
-    except requests.RequestException as e:
-        print(f"An error occurred: {e}")
-        return None
-    
-# check if appID is DLC or Soundtrack
-def is_downloadable_content(appID):
-    url = f"https://store.steampowered.com/app/{appID}"
-    is_dlc = False
-    is_soundtrack = False
-    try:
-        response = requests.get(url, cookies=cookies)
-        response.raise_for_status()
-        soup = bs4.BeautifulSoup(response.text, 'html.parser')
-        details = soup.find_all('div', class_='game_area_bubble game_area_dlc_bubble')
-        for detail in details:
-            h1_tag = detail.find('h1')
-            if h1_tag:
-                if 'Downloadable Content' in h1_tag.text:
-                    is_dlc = True
-        
-        details = soup.find_all('div', class_='game_area_bubble game_area_soundtrack_bubble')
-        for detail in details:
-            h1_tag = detail.find('h1')
-            if h1_tag:
-                if 'Downloadable Soundtrack' in h1_tag.text:
-                    is_soundtrack = True
-
-        if is_dlc or is_soundtrack:
-            return True
-        else:
-            return False
-    except requests.RequestException as e:
-        print(f"An error occurred: {e}")
-        return False     
-
-# function to check if page returns with a 302 status code
-def is_redirect(appID):
-    url = f"https://store.steampowered.com/app/{appID}"
-    try:
-        response = requests.get(url, allow_redirects=False, cookies=cookies)
-        if response.status_code == 302:
-            return False
-        elif response.status_code == 200:
-            return True
-    except requests.RequestException as e:
-        print(f"An error occurred: {e}")
-        return False
-    
-# save last tested appID to a file
-def save_last_tested_appID(appID, filename="last_tested_appID.txt"):
-    try:
-        with open(filename, "w") as file:
-            file.write(str(appID))
+        with open(filename, 'w') as f:
+            f.write(str(appid))
     except IOError as e:
-        print(f"An error occurred while saving the appID: {e}")
+        print(f"An error occurred while saving the last appid: {e}")
 
-# load last tested appID from a file
-def load_last_tested_appID(filename="last_tested_appID.txt"):
+def load_last_appid(filename=last_appid):
     try:
-        with open(filename, "r") as file:
-            num = int(file.read().strip()) + 1
-            if num > 4294967295:
-                return 0
-            return num
-    except (IOError, ValueError):
-        return 0
+        with open(filename, 'r') as f:
+            return int(f.read().strip())
+    except (FileNotFoundError, ValueError):
+        return None
 
-# save a list of valid appIDs to a file without overwriting existing content
-def save_valid_appIDs(appIDs:list, existing_appIDs:list, filename="applist.txt"):
-    try:
-        print("Saving valid appIDs...")
-        already_saved_appIDs = []
-        for app in existing_appIDs:
-            already_saved_appIDs.append(app["appid"])
-        valid_appIDs = []
+def get_steam_app_list(last_appid=None):
+    base_url = "https://api.steampowered.com/IStoreService/GetAppList/v1/"
+    
+    if last_appid:
+        print(f"Fetching app list from last_appid: {last_appid}...")
+        params = f"key={config['SteamSettings']['key']}&last_appid={last_appid}"
+    else:
+        print("Fetching app list from the beginning...")
+        params = f"key={config['SteamSettings']['key']}"
+
+    url = f'{base_url}?{params}'
+
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        response_json = response.json()['response']
+    
+    if response_json:
+        data = response_json['apps']
         try:
-            for appID in appIDs:
-                if appID not in already_saved_appIDs:
-                    appid_json = {
-                        "appid": appID,
-                        "name": get_apphub_appname(appID)
-                    }
-                    valid_appIDs.append(appid_json)
-            with open(filename, "a", encoding="utf-8") as file:
-                file.write(f"{valid_appIDs}")
-        except IOError as e:
-            print(f"An error occurred while saving valid appIDs: {e}")
+            more_data = response_json['have_more_results']
+        except KeyError:
+            more_data = False
+        try:
+            last_appid = response_json['last_appid']
+            save_last_appid(last_appid)
+        except KeyError:
+            last_appid = None
+    
+    print(f"Fetched {len(data)} apps - last used appid: {last_appid} - {"Yes" if more_data else "No"} there are {"More" if more_data else "No more"} results.")
+    return data, more_data, last_appid
 
-        # upload to github
-        upload_to_github()
-    except KeyboardInterrupt:
-        pass
+def save_to_file(data, filename=steam_applist):
+    with open(filename, 'w', encoding='utf-8') as f:
+        f.write(str(data))
+    
+    upload_to_github()
 
-def load_valid_appIDs(filename="applist.txt"):
-    print("Loading existing valid appIDs...")
-    valid_appIDs = []
+def load_from_file(filename=steam_applist):
     try:
-        with open(filename, "r", encoding="utf-8") as file:
-            for line in file:
-                appIDs = line
-        appIDs = ast.literal_eval(appIDs)
-        for app in appIDs:
-            valid_appIDs.append(app["appid"])
-    except IOError:
+        with open(filename, 'r', encoding='utf-8') as f:
+            data = ast.literal_eval(f.read())
+    except FileNotFoundError:
+        data = []
+    return data
+
+def update_list(existing_list, new_list):
+    print("Updating existing app list with new data...")
+    existing_appids = {app['appid'] for app in existing_list if 'appid' in app}
+    to_add = []
+    seen = existing_appids
+    append = to_add.append
+    for app in new_list:
+        appid = app.get('appid')
+        if appid and appid not in seen:
+            if appid not in existing_appids:
+                seen.add(appid)
+                append(app)
+    existing_list.extend(to_add)
+    return existing_list
+
+def remove_last_appid_file(filename=last_appid):
+    try:
+        os.remove(filename)
+    except FileNotFoundError:
         pass
-    except KeyboardInterrupt:
-        print("Process interrupted by user.")
-        exit(1)
-    return valid_appIDs, appIDs
 
 # upload generated applist.txt to github repository
-def upload_to_github(filename="applist.txt"):
+def upload_to_github(filename=steam_applist):
     print("Uploading applist.txt to GitHub...")
     try:
         path = f"{filename}"
@@ -193,14 +145,14 @@ def upload_to_github(filename="applist.txt"):
             data = f.read()
         b64content = base64.b64encode(data).decode()
 
-        url = f"https://api.github.com/repos/{gh_owner}/{gh_repo}/contents/{path}"
+        url = f"https://api.github.com/repos/{config['GithubLogin']['GithubOwner']}/{config['GithubLogin']['GithubRepo']}/contents/{path}"
         headers = {
-            "Authorization": f"Bearer {gh_token}",
+            "Authorization": f"Bearer {config['GithubLogin']['GithubToken']}",
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2022-11-28",
         }
 
-        params = {"ref": gh_branch}
+        params = {"ref": config['GithubLogin']['GithubBranch']}
         r = requests.get(url, headers=headers, params=params)
         if r.status_code == 200:
             existing = r.json()
@@ -211,7 +163,7 @@ def upload_to_github(filename="applist.txt"):
         payload = {
             "message": message,
             "content": b64content,
-            "branch": gh_branch,
+            "branch": config['GithubLogin']['GithubBranch'],
         }
         if sha:
             payload["sha"] = sha
@@ -224,31 +176,29 @@ def upload_to_github(filename="applist.txt"):
     except KeyboardInterrupt:
         pass
 
-# main loop to test appIDs
-def main(end_appID=4294967295):
-    valid_appIDs, appIDs = load_valid_appIDs()
-    start_appID = load_last_tested_appID()
-    curr_appID = start_appID
-    try:
-        while True:
-            for appID in range(start_appID, end_appID + 1):
-                if appID not in valid_appIDs:
-                    if is_redirect(appID):
-                        if not is_downloadable_content(appID):
-                            print(f"Valid appID found: {appID}")
-                            valid_appIDs.append(appID)
-                else:
-                    print(f"Skipping already validated appID: {appID}")
-                save_last_tested_appID(appID)
-                curr_appID = appID
-            if curr_appID >= end_appID:
-                print("Reached the end of the appID range. Restarting from 0.")
-                save_valid_appIDs(valid_appIDs, appIDs)
-                start_appID = 0
-    except KeyboardInterrupt:
-        print("Process interrupted by user. Saving progress...")
-        save_last_tested_appID(curr_appID)
-    save_valid_appIDs(valid_appIDs, appIDs)
+def run():
+    applist = load_from_file()
+    last_appid = load_last_appid()
+    while True:
+        if last_appid:
+            data, more_data, last_appid = get_steam_app_list(last_appid)
+        else:
+            data, more_data, last_appid = get_steam_app_list()
+
+        applist = update_list(applist, data)
+
+        if not more_data or not last_appid:
+            break
+
+    return applist
+
+def main():
+    while True:
+        applist = run()
+        save_to_file(applist)
+        remove_last_appid_file()
+        print("Waiting for 30 minutes before next update...")
+        time.sleep(30 * 60)
 
 if __name__ == "__main__":
     main()
