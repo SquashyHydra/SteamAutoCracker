@@ -1,3 +1,4 @@
+import ctypes
 import traceback
 
 try: # Handles Python errors to write them to a log file so they can be reported and fixed more easily.
@@ -7,6 +8,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
 
     import requests
     import configparser
+    import ast
     import json
     import os
     import subprocess
@@ -17,7 +19,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
     import re
     import unicodedata
 
-    VERSION = "2.2.4"
+    VERSION = "2.2.5"
 
     RETRY_DELAY = 15 # Delay in seconds before retrying a failed request. (default, can be modified in config.ini)
     RETRY_MAX = 30 # Number of failed tries (includes the first try) after which SAC will stop trying and quit. (default, can be modified in config.ini)
@@ -35,6 +37,11 @@ try: # Handles Python errors to write them to a log file so they can be reported
 
     GITHUB_LATESTVERSIONJSON = "https://raw.githubusercontent.com/SquashyHydra/SteamAutoCracker/autoupdater/latestversion.json"
     GITHUB_AUTOUPDATER = "https://github.com/SquashyHydra/SteamAutoCracker/raw/refs/heads/autoupdater/steam_auto_cracker_gui_autoupdater.exe"
+
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(2)
+    except AttributeError:
+        ctypes.windll.user32.SetProcessDPIAware(True)
 
     def OnTkinterError(exc, val, tb):
         # Handle Tkinter Python errors
@@ -189,7 +196,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
         root.update() # Update the window now
         try:
             with open("applist.txt", "r", encoding="utf-8") as file:
-                data = json.load(file)
+                data = json.loads(json.dumps(ast.literal_eval(file.read())))
         except:
             update_logs("The App List isn't downloaded on your computer, downloading it...")
             UpdateAppList()
@@ -294,7 +301,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
         gameFoundStatus.config(text=f"Updating the App List...")
         root.update()
         try:
-            req = SACRequest("https://raw.githubusercontent.com/jsnli/steamappidlist/refs/heads/master/data/games_appid.json", "UpdateAppList").req
+            req = SACRequest("https://raw.githubusercontent.com/SquashyHydra/SteamAutoCracker/refs/heads/applist/applist.txt", "UpdateAppList").req
         except Exception:
             gameFoundStatus.config(text=f"An error has occurred")
             return
