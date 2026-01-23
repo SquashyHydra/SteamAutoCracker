@@ -1,2 +1,6 @@
 *.ini
 last_appid.txt
+.venv/
+__pycache__/
+setup-x*
+cygwin64/
