@@ -4,3 +4,4 @@ last_appid.txt
 __pycache__/
 setup-x*
 cygwin64/
+last_tested_appid.txt
