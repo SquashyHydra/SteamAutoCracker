@@ -4,7 +4,7 @@
 ![GitHub Repo stars](https://img.shields.io/github/stars/BigBoiCJ/SteamAutoCracker?color=yellow&label=Stars)
 ![GitHub watchers](https://img.shields.io/github/watchers/BigBoiCJ/SteamAutoCracker?label=Watchers)
 
-An open-source script that automatically Cracks (removes DRM from) Steam games
+An open-source script that automatically Cracks (removes Steam DRM from) Steam games
 
 ## How to use (easy way)
 - Download the bundled/compiled version by clicking [here](https://github.com/BigBoiCJ/SteamAutoCracker/releases/latest) and downloading the file named `Steam.Auto.Cracker.GUI.vX.X.X.zip`
