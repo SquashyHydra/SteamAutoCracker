@@ -19,7 +19,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
     import re
     import unicodedata
 
-    VERSION = "2.2.5"
+    VERSION = "2.2.7"
 
     RETRY_DELAY = 15 # Delay in seconds before retrying a failed request. (default, can be modified in config.ini)
     RETRY_MAX = 30 # Number of failed tries (includes the first try) after which SAC will stop trying and quit. (default, can be modified in config.ini)
@@ -278,14 +278,16 @@ try: # Handles Python errors to write them to a log file so they can be reported
 
         for app in data:
             appNameInList = app.get("name", "")
+            appName2InList = app.get("name2", "")
             # fast exact match first
-            if appNameInList.lower() == appName.lower():
+            if appNameInList.lower() == appName.lower() or appName2InList.lower() == appName.lower():
                 return app["appid"]
 
             name_variants = _variants(appNameInList)
+            name2_variants = _variants(appName2InList)
 
             # Check intersection between variant sets
-            if target_variants & name_variants:
+            if target_variants & name_variants or target_variants & name2_variants:
                 return app["appid"]
 
         update_logs("[!] The App was not found, make sure you entered EXACTLY the Steam Game's name (watch it on Steam)")
