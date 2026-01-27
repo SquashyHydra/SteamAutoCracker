@@ -658,9 +658,9 @@ try: # Handles Python errors to write them to a log file so they can be reported
                         with open(os.path.join(dllCurrentLocation, steam_dll), "r+b") as file:
                             content = file.read()
                             if bit_type in steam_dll:
-                                content = content.replace(b'SHELL32.dll', b'RUNE64\x00WUS')
+                                content = content.replace(b'SHELL32.dll', b'RUNE64\x00GNG')
                             else:
-                                content = content.replace(b'SHELL32.dll', b'RUNE\x00!WUS!')
+                                content = content.replace(b'SHELL32.dll', b'RUNE\x00GNGL!')
                             file.seek(0)
                             file.write(content)
 
