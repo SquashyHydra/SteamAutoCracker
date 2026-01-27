@@ -1,5 +1,5 @@
 requests
-steam
+steam[client]
 eventemitter
 protobuf>=3.19.0
 gevent

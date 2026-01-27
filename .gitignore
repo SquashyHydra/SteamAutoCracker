@@ -1,7 +1,12 @@
 *.ini
 last_appid.txt
-.venv/
+.env
+last_tested_appID.txt
+pycache/
 __pycache__/
-setup-x*
-cygwin64/
-last_tested_appid.txt
+*.pyc
+.DS_Store
+.vscode/
+.idea/
+.envrc
+start.sh
