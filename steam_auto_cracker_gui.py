@@ -19,7 +19,7 @@ try: # Handles Python errors to write them to a log file so they can be reported
     import re
     import unicodedata
 
-    VERSION = "2.2.7"
+    VERSION = "2.2.7-rc1"
 
     RETRY_DELAY = 15 # Delay in seconds before retrying a failed request. (default, can be modified in config.ini)
     RETRY_MAX = 30 # Number of failed tries (includes the first try) after which SAC will stop trying and quit. (default, can be modified in config.ini)
@@ -274,21 +274,55 @@ try: # Handles Python errors to write them to a log file so they can be reported
                 v.add(nosp)
             return v
 
+        if isinstance(appName, type(None)):
+            update_logs("[!] The App was not found, make sure you entered EXACTLY the Steam Game's name (watch it on Steam)")
+            gameFoundStatus.config(text=f"App not found!")
+            updateAppListButton.grid(row=0, column=2, padx=(10, 0))
+            return 0
+
         target_variants = _variants(appName)
+        try:
+            appName_lower = appName.lower()
+        except Exception:
+            update_logs("[!] The App was not found, make sure you entered EXACTLY the Steam Game's name (watch it on Steam)")
+            gameFoundStatus.config(text=f"App not found!")
+            updateAppListButton.grid(row=0, column=2, padx=(10, 0))
+            return 0
 
         for app in data:
             appNameInList = app.get("name", "")
             appName2InList = app.get("name2", "")
-            # fast exact match first
-            if appNameInList.lower() == appName.lower() or appName2InList.lower() == appName.lower():
+
+            if isinstance(appNameInList, type(None)):
+                appNameInList = ""
+            if isinstance(appName2InList, type(None)):
+                appName2InList = ""
+
+            try: 
+                appNameInList_lower = appNameInList.lower()
+            except Exception:
+                update_logs(f"[!] Error while processing appName '{appNameInList}'")
+            
+            try:
+                appName2InList_lower = appName2InList.lower()
+            except Exception:
+                update_logs(f"[!] Error while processing appName2 '{appName2InList}'")
+
+            if appNameInList_lower == appName_lower:
+                return app["appid"]
+            elif appName2InList_lower == appName_lower:
                 return app["appid"]
 
-            name_variants = _variants(appNameInList)
-            name2_variants = _variants(appName2InList)
+            try:
+                name_variants = _variants(appNameInList)
+                name2_variants = _variants(appName2InList)
 
-            # Check intersection between variant sets
-            if target_variants & name_variants or target_variants & name2_variants:
-                return app["appid"]
+                # Check intersection between variant sets
+                if target_variants & name_variants or target_variants & name2_variants:
+                    return app["appid"]
+            except Exception:
+                update_logs(f"[!] Error while processing app '{appNameInList}'")
+                continue
 
         update_logs("[!] The App was not found, make sure you entered EXACTLY the Steam Game's name (watch it on Steam)")
         update_logs("If you typed it properly, you can try to update the App List. Alternatively, you can try entering the AppID.")
@@ -657,12 +691,12 @@ try: # Handles Python errors to write them to a log file so they can be reported
                             shutil.copyfile(os.path.join(root_dir, "GameOverlayRenderer64.dll"), os.path.join(dllCurrentLocation, "GameOverlayRenderer64.dll"))
                             shutil.copyfile(os.path.join(root_dir, "rune64.dll"), os.path.join(dllCurrentLocation, "rune64.dll"))
                             if is_SteamClient021_present(os.path.join(dllCurrentLocation, steam_dll)):
-                                shutil.copyfile(os.path.join(root_dir, "steamclient64_021.dll"), os.path.join(dllCurrentLocation, "steamclient64.dll"))
+                                shutil.copyfile(os.path.join(root_dir, "steamclient64.dll"), os.path.join(dllCurrentLocation, "steamclient64.dll"))
                         elif bit_type == "86":
                             shutil.copyfile(os.path.join(root_dir, "GameOverlayRenderer.dll"), os.path.join(dllCurrentLocation, "GameOverlayRenderer.dll"))
                             shutil.copyfile(os.path.join(root_dir, "rune.dll"), os.path.join(dllCurrentLocation, "rune.dll"))
                             if is_SteamClient021_present(os.path.join(dllCurrentLocation, steam_dll)):
-                                shutil.copyfile(os.path.join(root_dir, "steamclient_021.dll"), os.path.join(dllCurrentLocation, "steamclient.dll"))
+                                shutil.copyfile(os.path.join(root_dir, "steamclient.dll"), os.path.join(dllCurrentLocation, "steamclient.dll"))
                         
                         # Overwrite SHELL32 module with RUNE(64) module
                         with open(os.path.join(dllCurrentLocation, steam_dll), "r+b") as file:
