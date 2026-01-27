@@ -334,4 +334,4 @@ def main(loop=True):
 
 
 if __name__ == "__main__":
-    main(loop=False)
+    main(loop=True)
