@@ -639,6 +639,14 @@ try: # Handles Python errors to write them to a log file so they can be reported
                             continue # Ignore this file
 
                     if 'game_rune' in config["Crack"]["SelectedCrack"]:
+                        def is_SteamClient021_present(dll_path):
+                            try:
+                                with open(dll_path, "rb") as file:
+                                    content = file.read().decode('utf-8', errors='ignore')
+                                    return True if "SteamClient021" not in content else False
+                            except Exception:
+                                return False
+
                         # Backup and Create redirect for Steam dll
                         if not os.path.exists(os.path.join(dllCurrentLocation, f"{steam_dll.split('.')[0]}.rde")):
                             shutil.copyfile(os.path.join(dllCurrentLocation, steam_dll), os.path.join(dllCurrentLocation, f"{steam_dll}.bak"))
@@ -648,11 +656,13 @@ try: # Handles Python errors to write them to a log file so they can be reported
                         if bit_type == "64":
                             shutil.copyfile(os.path.join(root_dir, "GameOverlayRenderer64.dll"), os.path.join(dllCurrentLocation, "GameOverlayRenderer64.dll"))
                             shutil.copyfile(os.path.join(root_dir, "rune64.dll"), os.path.join(dllCurrentLocation, "rune64.dll"))
-                            shutil.copyfile(os.path.join(root_dir, "steamclient64.dll"), os.path.join(dllCurrentLocation, "steamclient64.dll"))
+                            if is_SteamClient021_present(os.path.join(dllCurrentLocation, steam_dll)):
+                                shutil.copyfile(os.path.join(root_dir, "steamclient64_021.dll"), os.path.join(dllCurrentLocation, "steamclient64.dll"))
                         elif bit_type == "86":
                             shutil.copyfile(os.path.join(root_dir, "GameOverlayRenderer.dll"), os.path.join(dllCurrentLocation, "GameOverlayRenderer.dll"))
                             shutil.copyfile(os.path.join(root_dir, "rune.dll"), os.path.join(dllCurrentLocation, "rune.dll"))
-                            shutil.copyfile(os.path.join(root_dir, "steamclient.dll"), os.path.join(dllCurrentLocation, "steamclient.dll"))
+                            if is_SteamClient021_present(os.path.join(dllCurrentLocation, steam_dll)):
+                                shutil.copyfile(os.path.join(root_dir, "steamclient_021.dll"), os.path.join(dllCurrentLocation, "steamclient.dll"))
                         
                         # Overwrite SHELL32 module with RUNE(64) module
                         with open(os.path.join(dllCurrentLocation, steam_dll), "r+b") as file:
