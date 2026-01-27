@@ -213,15 +213,15 @@ class Worker:
                     gevent.sleep(0.5 * attempt)
                     continue
                 else:
-                    return {'appid': appid, 'name': name, 'name2': None}
+                    return {'appid': appid, 'name': name, 'name2': ''}
             except Exception as e:
                 # Some API calls return strings or unexpected types; log and return fallback
                 print(f'[worker {self.worker_id}] get_product_info error for {appid}:', e)
-                return {'appid': appid, 'name': name, 'name2': None}
+                return {'appid': appid, 'name': name, 'name2': ''}
 
             # parse result (may be dict-like or proto-like)
             if res is None:
-                return {'appid': appid, 'name': name, 'name2': None}
+                return {'appid': appid, 'name': name, 'name2': ''}
 
             apps = res.get('apps') if isinstance(res, dict) else getattr(res, 'apps', None)
             if apps:
@@ -251,7 +251,7 @@ class Worker:
                     pass
 
             # If we reached here result was invalid/unusable; return fallback
-            return {'appid': appid, 'name': name, 'name2': None}
+            return {'appid': appid, 'name': name, 'name2': ''}
 
     def run(self):
         try:
