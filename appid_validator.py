@@ -238,6 +238,9 @@ class Worker:
                     app_mappings = config_map.get('app_mappings', {}) or {}
                     installdir = app_mappings.get('installdir')
 
+                    if isinstance(installdir, type(None)):
+                        installdir = ''
+
                     return {'appid': aid_val, 'name': gamedir or name, 'name2': installdir}
 
             kv_text = getattr(res, 'kv_text', None)
@@ -246,6 +249,8 @@ class Worker:
                     parsed = vdf.loads(kv_text)
                     common = parsed.get('common', {})
                     installdir = common.get('installdir')
+                    if isinstance(installdir, type(None)):
+                        installdir = ''
                     return {'appid': appid, 'name': name, 'name2': installdir}
                 except Exception:
                     pass
