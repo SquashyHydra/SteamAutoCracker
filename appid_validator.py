@@ -2,8 +2,10 @@ import requests
 import ast
 import base64
 import os
+import sys
 import configparser
 
+backup_applist="applist.bak"
 last_appid="last_appid.txt"
 steam_applist="applist.txt"
 config_file="config.ini"
@@ -18,6 +20,18 @@ default_GithubLogin = {
     'GithubRepo': 'yourusername/yourrepo',
     'GithubBranch': 'main',
 }
+
+def get_current_directory():
+    # Get the file directory of running script or get file location of single file executable
+    # get Pyinstaller executable path
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    # get nuikta executable path
+    elif '__compiled__' in globals():
+        return os.path.dirname(os.path.abspath(sys.executable))
+    # get script path
+    else:
+        return os.path.dirname(os.path.abspath(__file__))
 
 def create_config(filename=config_file):
     config = configparser.ConfigParser()
@@ -170,9 +184,15 @@ def get_steam_app_list(last_appid=None) -> tuple[list[dict], bool, int|None]:
 
 def remove_last_appid_file(filename:str=last_appid):
     try:
-        os.remove(filename)
+        os.remove(os.path.join(get_current_directory(), filename))
     except FileNotFoundError:
         pass
+
+def check_applist_back(filename:str=backup_applist):
+    try:
+        return True if os.path.exists((os.path.join(get_current_directory(), filename))) else False
+    except Exception:
+        return False
 
 from steam.client import SteamClient
 import vdf
@@ -301,7 +321,7 @@ def run_parallel(app_entries: list, concurrency: int = 6, timeout: int = 20) -> 
 
 
 def run(workers: int = 6, timeout: int = 20):
-    applist = load_from_file()
+    applist = load_from_file() if not check_applist_back() else load_from_file(backup_applist)
     last_appid = load_last_appid()
     while True:
         if last_appid:
@@ -323,19 +343,24 @@ def run(workers: int = 6, timeout: int = 20):
 
     return applist
 
+import traceback
 
 def main(loop: bool = True, workers: int = 6, timeout: int = 20):
-    if loop:
-        while True:
+    try:
+        if loop:
+            while True:
+                applist = run(workers=workers, timeout=timeout)
+                save_to_file(applist)
+                remove_last_appid_file()
+                print("Waiting for 30 minutes before next update...")
+                time.sleep(30 * 60)
+        else:
             applist = run(workers=workers, timeout=timeout)
             save_to_file(applist)
             remove_last_appid_file()
-            print("Waiting for 30 minutes before next update...")
-            time.sleep(30 * 60)
-    else:
-        applist = run(workers=workers, timeout=timeout)
-        save_to_file(applist)
-        remove_last_appid_file()
+    except Exception as e:
+        traceback.print_exc()
+        save_to_file(backup_applist)
 
 import argparse
 
