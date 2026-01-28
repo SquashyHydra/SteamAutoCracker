@@ -1,6 +1,6 @@
-# SteamAutoCracker
+# SteamAutoCracker Applist Generator
 
-**SteamAutoCracker** is an automated Python tool that continuously fetches and maintains a comprehensive list of Steam applications (games, software, DLC, etc.) with their installation directory names. The tool queries the Steam Web API and Steam client to extract detailed app information and automatically syncs the data to a GitHub repository.
+**SteamAutoCracker Applist Generator** is an automated Python tool that continuously fetches and maintains a comprehensive list of Steam applications (games, software, DLC, etc.) with their installation directory names. The tool queries the Steam Web API and Steam client to extract detailed app information and automatically syncs the data to a GitHub repository.
 
 ## Features
 
