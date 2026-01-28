@@ -21,6 +21,8 @@ default_GithubLogin = {
     'GithubBranch': 'main',
 }
 
+last_appids_list = []
+
 def get_current_directory():
     # Get the file directory of running script or get file location of single file executable
     # get Pyinstaller executable path
@@ -175,6 +177,7 @@ def get_steam_app_list(last_appid=None) -> tuple[list[dict], bool, int|None]:
             more_data = False
         try:
             last_appid = response_json['last_appid']
+            last_appids_list.append(last_appid)
             save_last_appid(last_appid)
         except KeyError:
             last_appid = None
@@ -354,6 +357,7 @@ def main(loop: bool = True, workers: int = 6, timeout: int = 20):
                 remove_last_appid_file()
                 print("Waiting for 30 minutes before next update...")
                 time.sleep(30 * 60)
+                last_appids_list.clear()
         else:
             applist = run(workers=workers, timeout=timeout)
             save_to_file(applist)
@@ -361,14 +365,20 @@ def main(loop: bool = True, workers: int = 6, timeout: int = 20):
     except Exception as e:
         traceback.print_exc()
         save_to_file(backup_applist)
+        if last_appids_list != []:
+            save_last_appid(last_appids_list[-1] if last_appids_list else None)
+        else:
+            remove_last_appid_file()
 
 import argparse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Steam AppID Validator and Uploader")
     parser.add_argument('--once', action='store_true', help="Run the update process only once")
+    parser.add_argument('--workers', type=int, default=6, help="Number of parallel workers (default: 6)")
+    parser.add_argument('--timeout', type=int, default=20, help="Timeout for each worker in seconds (default: 20)")
     args = parser.parse_args()
 
     is_looping = True if not args.once else False
 
-    main(loop=is_looping)
+    main(loop=is_looping, workers=args.workers, timeout=args.timeout)
