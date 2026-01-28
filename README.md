@@ -54,13 +54,13 @@ On first run, the script will create a `config.ini` file with default values. Yo
 
 ```ini
 [SteamSettings]
-key = your_steam_web_api_key_here
+key = steam_web_api_key_here
 
 [GithubLogin]
-githubtoken = your_github_personal_access_token
-githubowner = your_github_username
-githubrepo = repository_name
-githubbranch = main
+GithubToken = your_github_token
+GithubOwner = yourusername
+GithubRepo = yourrepo
+GithubBranch = main
 ```
 
 ### Configuration Steps
@@ -80,9 +80,9 @@ githubbranch = main
 3. **Update config.ini**:
    - Replace `steam_web_api_key_here` with your actual Steam Web API key
    - Replace `your_github_token` with your GitHub Personal Access Token
-   - Replace `yourusername` with your GitHub username
-   - Replace `yourusername/yourrepo` with your target repository (format: `owner/repo-name`)
-   - Set the branch name (default is `main`)
+   - Replace `yourusername` in `GithubOwner` with your GitHub username
+   - Replace `yourrepo` in `GithubRepo` with your repository name (just the repo name, not owner/repo)
+   - Set the branch name in `GithubBranch` (default is `main`)
 
 ## Usage
 
