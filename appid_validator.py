@@ -300,7 +300,7 @@ def run_parallel(app_entries: list, concurrency: int = 6, timeout: int = 20) -> 
     return results
 
 
-def run():
+def run(workers: int = 6, timeout: int = 20):
     applist = load_from_file()
     last_appid = load_last_appid()
     while True:
@@ -315,7 +315,7 @@ def run():
 
         if to_process:
             print(f'Processing {len(to_process)} appids in parallel')
-            results = run_parallel(to_process, concurrency=6, timeout=20)
+            results = run_parallel(to_process, concurrency=workers, timeout=timeout)
             applist = update_list(applist, results)
 
         if not more_data or not last_appid:
@@ -324,19 +324,26 @@ def run():
     return applist
 
 
-def main(loop=True):
+def main(loop: bool = True, workers: int = 6, timeout: int = 20):
     if loop:
         while True:
-            applist = run()
+            applist = run(workers=workers, timeout=timeout)
             save_to_file(applist)
             remove_last_appid_file()
             print("Waiting for 30 minutes before next update...")
             time.sleep(30 * 60)
     else:
-        applist = run()
+        applist = run(workers=workers, timeout=timeout)
         save_to_file(applist)
         remove_last_appid_file()
 
+import argparse
 
 if __name__ == "__main__":
-    main(loop=True)
+    parser = argparse.ArgumentParser(description="Steam AppID Validator and Uploader")
+    parser.add_argument('--once', action='store_true', help="Run the update process only once")
+    args = parser.parse_args()
+
+    is_looping = True if not args.once else False
+
+    main(loop=is_looping)
