@@ -364,7 +364,7 @@ def main(loop: bool = True, workers: int = 6, timeout: int = 20):
             remove_last_appid_file()
     except Exception as e:
         traceback.print_exc()
-        save_to_file(backup_applist)
+        save_to_file(applist, backup_applist)
         if last_appids_list != []:
             save_last_appid(last_appids_list[-1] if last_appids_list else None)
         else:
